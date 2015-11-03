@@ -1,0 +1,16 @@
+{
+  "name": "sg-util",
+  "version": "0.0.1",
+  "description": "AWS SecurityGroup Util commands",
+  "author": "toshihirock",
+  "engines": {
+    "node": ">=0.10"
+  },
+  "dependencies": {
+    "aws-sdk": "^2.2.14",
+    "commander": "^2.9.0"
+  },
+  "bin": {
+    "sg-util": "sg-util.js"
+  }
+}
