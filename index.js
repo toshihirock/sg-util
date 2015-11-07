@@ -2,13 +2,14 @@
 
 var program = require('commander');
 var AWS = require('aws-sdk');
+var async = require('async');
 
 program
   .version('0.0.1');
 
 program
   .command('show')
-  .description('show  security group')
+  .description('show  security group information')
   .option('-r, --region <region>', 'AWS region')
   .option('-i, --id <id>', 'security group id')
   .option('-n, --name <name>', 'security group name')
@@ -18,7 +19,18 @@ program
     show(program.commands[0]);
   });
 
+program
+  .command('associate')
+  .description('show  associate security group')
+  .option('-r, --region <region>', 'AWS region')
+  .option('-i, --id <id>', 'security group id')
+  .option('-n, --name <name>', 'security group name')
+  .action(function() {
+    associate(program.commands[1]);
+  });
+
 program.parse(process.argv);
+
 
 function getIpRanges(ipRanges) {
   var tmp = '';
@@ -60,7 +72,7 @@ function getUserIdGroupPairs(userIdGroupPairs) {
 
 function showInfo(data) {
   data.SecurityGroups.forEach(function(sg) {
-    console.log('GroupName,GroupId,Description,VpcId');
+    console.log('"GroupName","GroupId","Description","VpcId"');
     console.log('"' + sg.GroupName + '","' + sg.GroupId + '","' + sg.Description + '","' + sg.VpcId + '"');
   });
 }
@@ -70,10 +82,10 @@ function showRule(data, inbound) {
     var permission;
     if(inbound) { 
       permission = sg.IpPermissions;
-      console.log('Index,IpProtocol,PortRange,Source');
+      console.log('"Index","IpProtocol","PortRange","Source"');
     } else {
       permission = sg.IpPermissionsEgress;
-      console.log('Index,IpProtocol,PortRange,Destination');
+      console.log('"Index","IpProtocol","PortRange","Destination"');
     }
     permission.forEach(function(rule, i) {
       //console.log(rule);
@@ -93,7 +105,7 @@ function showOutBound(data) {
 }
 
 function isEmpty(val) {
-  if(typeof val === 'undefined' || typeof val === 'function') return true;
+  if(typeof val === 'undefined' || typeof val === 'function' || val === null) return true;
   return false;
 }
 
@@ -102,23 +114,144 @@ function isHashEmpty(hash) {
   return true;
 }
 
-function show(command) {
-  // check region
-  if(isEmpty(command.region)) {
+function checkRegion(region) {
+  if(isEmpty(region)) {
     console.log('need to specify --region');
     process.exit();
   }
-  // get params options
+  return;
+}
+
+function getFilterParams(id, name, type) {
   var params = {};
-  if(!(isEmpty(command.id))) params['GroupIds'] = [command.id];
-  if(!(isEmpty(command.name))) params['GroupNames'] = [command.name]
-  //console.log(params);
+  var filterId = 'group-id';
+  var filterName = 'group-name';
+
+  if(type == 'ec2' || type == 'EC2') {
+    filterId = 'instance.group-id';
+    filterName = 'instance.group-name';
+  }
+
+  if(!(isEmpty(id))) {
+    params['Filters'] = [
+      {
+        Name: filterId,
+        Values: [id]
+      }
+    ]
+  }
+
+  if(!(isEmpty(name))) {
+    params['Filters'] = [
+      {
+        Name: filterName,
+        Values: [name]
+      }
+    ]
+  }
+
+  return params;
+}
+
+function getTagName(tags) {
+  var name = '';
+  tags.forEach(function(tag) {
+    if(tag.Key === 'Name') name = tag.Value
+  });
+  return name;
+}
+
+function describeInstances(ec2, securityGroupId, cb) {
+  params = getFilterParams(securityGroupId, null, 'ec2');
+  console.log(params);
+  ec2.describeInstances(params, function(err, data) {
+    if (err) cb(err, null);
+    else {
+      var array = [];
+      data.Reservations.forEach(function(reservation) {
+        reservation.Instances.forEach(function(instance) {
+          array.push({
+            Name: getTagName(instance.Tags),
+            InstanceId: instance.InstanceId
+          });
+        });
+      });
+      cb(null, array);
+    }
+  });
+}
+
+function describeLoadBalancers(securityGroupId, cb) {
+  var elb = new AWS.ELB();
+  elb.describeLoadBalancers({}, function(err, data) {
+    if (err) cb(err, null);
+    else {
+      var array = [];
+      data.LoadBalancerDescriptions.forEach(function(elb) {
+        if(elb.SecurityGroups.indexOf(securityGroupId) !== -1) {
+          array.push({
+            LoadBalancerName: elb.LoadBalancerName,
+            DNSName: elb.DNSName
+          });
+        }
+      });
+      cb(null, array);
+    }
+  });
+}
+
+function associate(command) {
+  checkRegion(command.region);
+  AWS.config.region = command.region;
+  params = getFilterParams(command.id, command.name, 'sg');
+
+  if(isHashEmpty(params)) {
+    console.log('need to specify --id or --name');
+    process.exit();
+  }
+
+  var ec2 = new AWS.EC2();
+  ec2.describeSecurityGroups(params, function(err, data) {
+    if (err) console.log(err, err.stack);
+    else {
+      var securityGroupId = data.SecurityGroups[0].GroupId;
+      console.log(securityGroupId);
+      async.parallel({
+        ec2: function(cb) {
+          describeInstances(ec2, securityGroupId, cb);
+        },
+        elb: function(cb) {
+          describeLoadBalancers(securityGroupId, cb);
+        }
+      },
+      function(err, result) {
+        if (err) console.log(err, err,stack);
+        else {
+          //header
+          console.log('"type","name","id"');
+          result['ec2'].forEach(function(instance) {
+            console.log('"ec2","' + instance.Name + '","' + instance.InstanceId + '"');
+          });
+          result['elb'].forEach(function(elb) {
+            console.log('"elb","' + elb.LoadBalancerName  + '","' + elb.DNSName + '"');
+          });
+        }
+      });
+    }
+  });
+}
+
+function show(command) {
+  checkRegion(command.region);
+  AWS.config.region = command.region;
+  params = getFilterParams(command.id, command.name, 'sg');
+
   if(isHashEmpty(params) && (!(isEmpty(command.inbound)) || (!(isEmpty(command.outbound))))) {
     console.log('need to specify --id or --name');
     process.exit();
   }
 
-  var ec2 = new AWS.EC2({region: command.region});
+  var ec2 = new AWS.EC2();
   //console.log(params);
   ec2.describeSecurityGroups(params, function(err, data) {
     if (err) console.log(err, err.stack);
