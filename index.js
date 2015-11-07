@@ -22,8 +22,9 @@ program.parse(process.argv);
 function getIpRanges(ipRanges) {
   var tmp = '';
   ipRanges.forEach(function(ip) {
-    tmp += ip.CidrIp;
+    tmp = tmp + ip.CidrIp + ',';
   });
+  tmp = tmp.substr(0, (tmp.length -1));
   return tmp;
 }
 
@@ -38,19 +39,21 @@ function getSourceOrDestination(userIdGroupPairs, ipRanges) {
 }
 
 function getPortRange(from, to) {
-  console.log('portRange' + from + ',' + to);
+  //console.log("from = " + from + "to = " + to);
   if(isEmpty(from) && isEmpty(to)) return 'ALL';
+  else if(to === -1 && from === -1) return 'N/A';
   else if(to === from) return to;
-  else retrun (to + '-' + from);
+  else return (from + '-' + to);
 }
 
 function getUserIdGroupPairs(userIdGroupPairs) {
   var tmp = '';
   userIdGroupPairs.forEach(function(sg) {
-    console.log(sg);
-    console.log(sg.GroupId);
-    tmp += sg.GroupId;
+    //console.log(sg);
+    //console.log(sg.GroupId);
+    tmp = tmp + sg.GroupId + ',';
   });
+  tmp = tmp.substr(0, (tmp.length -1));
   return tmp;
 }
 
@@ -66,14 +69,16 @@ function showRule(data, inbound) {
     var permission;
     if(inbound) { 
       permission = sg.IpPermissions;
-      console.log('Index,IpProtocol,PortRange,Destination');
+      console.log('Index,IpProtocol,PortRange,Source');
     } else {
       permission = sg.IpPermissionsEgress;
-      console.log('Index,IpProtocol,PortRange,Source');
+      console.log('Index,IpProtocol,PortRange,Destination');
     }
     permission.forEach(function(rule, i) {
-      console.log(rule);
+      //console.log(rule);
       console.log('"' + i + '","' + getProtocol(rule.IpProtocol) + '","' + getPortRange(rule.FromPort, rule.ToPort) + '","' + getSourceOrDestination(rule.UserIdGroupPairs, rule.IpRanges) + '"');
+      //console.log(getProtocol(rule.IpProtocol));
+      //console.log(getPortRange(rule.FromPort, rule.ToPort));
     });
   });
 }
@@ -101,15 +106,14 @@ function show(command) {
   var params = {};
   if(!(isEmpty(command.id))) params['GroupIds'] = [command.id];
   if(!(isEmpty(command.name))) params['GroupNames'] = [command.name]
-  console.log(params);
+  //console.log(params);
   if(isHashEmpty(params) && (!(isEmpty(command.inbound)) || (!(isEmpty(command.outbound))))) {
     console.log('need to specify --id or --name');
     process.exit();
   }
 
-  console.log('show command');
   var ec2 = new AWS.EC2({region: 'ap-northeast-1'});
-  console.log(params);
+  //console.log(params);
   ec2.describeSecurityGroups(params, function(err, data) {
     if (err) console.log(err, err.stack);
     else {
