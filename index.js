@@ -9,6 +9,7 @@ program
 program
   .command('show')
   .description('show  security group')
+  .option('-r, --region <region>', 'AWS region')
   .option('-i, --id <id>', 'security group id')
   .option('-n, --name <name>', 'security group name')
   .option('--inbound', 'show inbound rule')
@@ -22,9 +23,9 @@ program.parse(process.argv);
 function getIpRanges(ipRanges) {
   var tmp = '';
   ipRanges.forEach(function(ip) {
-    tmp = tmp + ip.CidrIp + ',';
+    tmp = tmp + ip.CidrIp + ' ';
   });
-  tmp = tmp.substr(0, (tmp.length -1));
+  tmp = tmp.slice(0, -1);
   return tmp;
 }
 
@@ -51,9 +52,9 @@ function getUserIdGroupPairs(userIdGroupPairs) {
   userIdGroupPairs.forEach(function(sg) {
     //console.log(sg);
     //console.log(sg.GroupId);
-    tmp = tmp + sg.GroupId + ',';
+    tmp = tmp + sg.GroupId + ' ';
   });
-  tmp = tmp.substr(0, (tmp.length -1));
+  tmp = tmp.slice(0, -1);
   return tmp;
 }
 
@@ -102,6 +103,11 @@ function isHashEmpty(hash) {
 }
 
 function show(command) {
+  // check region
+  if(isEmpty(command.region)) {
+    console.log('need to specify --region');
+    process.exit();
+  }
   // get params options
   var params = {};
   if(!(isEmpty(command.id))) params['GroupIds'] = [command.id];
@@ -112,7 +118,7 @@ function show(command) {
     process.exit();
   }
 
-  var ec2 = new AWS.EC2({region: 'ap-northeast-1'});
+  var ec2 = new AWS.EC2({region: command.region});
   //console.log(params);
   ec2.describeSecurityGroups(params, function(err, data) {
     if (err) console.log(err, err.stack);
