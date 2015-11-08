@@ -1,6 +1,6 @@
 # sg-util
 
-This is CLI tool that provides AWS SecurityGroup information
+This is CLI tool that provides csv format AWS SecurityGroup information
 
 + Show SecurityGroup infomation like ManagementConsole
 + Show SecurityGroup inbound or outbound rule like ManagementConsole
