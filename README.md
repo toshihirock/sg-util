@@ -6,6 +6,37 @@ This is CLI tool that provides AWS SecurityGroup information
 + Show SecurityGroup inbound or outbound rule like ManagementConsole
 + Show specify SecurityGroup associated EC2 or ELB or RDS
 
+# Example
+
+```bash
+# show security group basic information
+$sg-util show --name Web --region ap-northeast-1
+"GroupName","GroupId","Description","VpcId"
+"Web","sg-1f5ec07a","web","vpc-c406dea1"
+
+# show security group inbound rule
+$sg-util show --name Web --region ap-northeast-1 --inbound
+"Index","IpProtocol","PortRange","Source"
+"0","tcp","80","0.0.0.0/0"
+"1","tcp","22","0.0.0.0/0"
+
+# show security group outbound rule
+$sg-util show --name Web --region ap-northeast-1 --outbound
+"Index","IpProtocol","PortRange","Destination"
+"0","ALL","ALL","0.0.0.0/0"
+
+# show specify SecurityGroup associated EC2
+$sg-util associate --name Web --region ap-northeast-1
+"type","name","id"
+"ec2","MyName","i-9c159239"
+
+# show specify SecurityGroup associated EC2
+$sg-util associate --name MySQL --region ap-northeast-1
+"type","name","id"
+"rds","db","mysql.cfunxik4b0cn.ap-northeast-1.rds.amazonaws.com"
+```
+
+```
 # Setup
 
 CLI uses AWS SDK
