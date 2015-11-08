@@ -20,7 +20,7 @@
     "cli",
     "security",
     "group",
-    "util",
+    "util"
   ],
   "preferGlobal": "true",
   "bin": {
