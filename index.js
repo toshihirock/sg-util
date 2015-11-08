@@ -52,7 +52,6 @@ function getSourceOrDestination(userIdGroupPairs, ipRanges) {
 }
 
 function getPortRange(from, to) {
-  //console.log("from = " + from + "to = " + to);
   if(isEmpty(from) && isEmpty(to)) return 'ALL';
   else if(to === -1 && from === -1) return 'N/A';
   else if(to === from) return to;
@@ -62,8 +61,6 @@ function getPortRange(from, to) {
 function getUserIdGroupPairs(userIdGroupPairs) {
   var tmp = '';
   userIdGroupPairs.forEach(function(sg) {
-    //console.log(sg);
-    //console.log(sg.GroupId);
     tmp = tmp + sg.GroupId + ' ';
   });
   tmp = tmp.slice(0, -1);
@@ -88,10 +85,7 @@ function showRule(data, inbound) {
       console.log('"Index","IpProtocol","PortRange","Destination"');
     }
     permission.forEach(function(rule, i) {
-      //console.log(rule);
       console.log('"' + i + '","' + getProtocol(rule.IpProtocol) + '","' + getPortRange(rule.FromPort, rule.ToPort) + '","' + getSourceOrDestination(rule.UserIdGroupPairs, rule.IpRanges) + '"');
-      //console.log(getProtocol(rule.IpProtocol));
-      //console.log(getPortRange(rule.FromPort, rule.ToPort));
     });
   });
 }
@@ -163,7 +157,6 @@ function getTagName(tags) {
 
 function describeInstances(ec2, securityGroupId, cb) {
   params = getFilterParams(securityGroupId, null, 'ec2');
-  console.log(params);
   ec2.describeInstances(params, function(err, data) {
     if (err) cb(err, null);
     else {
@@ -181,6 +174,7 @@ function describeInstances(ec2, securityGroupId, cb) {
   });
 }
 
+
 function describeLoadBalancers(securityGroupId, cb) {
   var elb = new AWS.ELB();
   elb.describeLoadBalancers({}, function(err, data) {
@@ -192,6 +186,32 @@ function describeLoadBalancers(securityGroupId, cb) {
           array.push({
             LoadBalancerName: elb.LoadBalancerName,
             DNSName: elb.DNSName
+          });
+        }
+      });
+      cb(null, array);
+    }
+  });
+}
+
+function isAttachedSecurityGroup(vpcSecurityGroups, securityGroupId) {
+  for (i = 0; i < vpcSecurityGroups.length; i++) {
+    if (vpcSecurityGroups[i].VpcSecurityGroupId === securityGroupId) return true;
+  }
+  return false;
+}
+
+function describeDBInstances(securityGroupId, cb) {
+  var rds = new AWS.RDS();
+  rds.describeDBInstances({}, function(err, data) {
+    if (err) cb(err, null);
+    else {
+      var array = [];
+      data.DBInstances.forEach(function(rds) {
+        if(isAttachedSecurityGroup(rds.VpcSecurityGroups, securityGroupId)) {
+          array.push({
+            DBName: rds.DBName,
+            EndpointAddress: rds.Endpoint.Address
           });
         }
       });
@@ -214,14 +234,20 @@ function associate(command) {
   ec2.describeSecurityGroups(params, function(err, data) {
     if (err) console.log(err, err.stack);
     else {
+      if (data.SecurityGroups.length === 0 ) {
+        console.log('can\'t find securitygroup');
+        process.exit();
+      }
       var securityGroupId = data.SecurityGroups[0].GroupId;
-      console.log(securityGroupId);
       async.parallel({
         ec2: function(cb) {
           describeInstances(ec2, securityGroupId, cb);
         },
         elb: function(cb) {
           describeLoadBalancers(securityGroupId, cb);
+        },
+        rds: function(cb) {
+          describeDBInstances(securityGroupId, cb);
         }
       },
       function(err, result) {
@@ -229,11 +255,15 @@ function associate(command) {
         else {
           //header
           console.log('"type","name","id"');
+          // body
           result['ec2'].forEach(function(instance) {
             console.log('"ec2","' + instance.Name + '","' + instance.InstanceId + '"');
           });
           result['elb'].forEach(function(elb) {
             console.log('"elb","' + elb.LoadBalancerName  + '","' + elb.DNSName + '"');
+          });
+          result['rds'].forEach(function(rds) {
+            console.log('"rds","' + rds.DBName  + '","' + rds.EndpointAddress + '"');
           });
         }
       });
@@ -252,10 +282,13 @@ function show(command) {
   }
 
   var ec2 = new AWS.EC2();
-  //console.log(params);
   ec2.describeSecurityGroups(params, function(err, data) {
     if (err) console.log(err, err.stack);
     else {
+      if (data.SecurityGroups.length === 0 ) {
+        console.log('can\'t find securitygroup');
+        process.exit();
+      }
       if(!(isEmpty(command.inbound))) showInbound(data);
       else if(!(isEmpty(command.outbound))) showOutBound(data);
       else showInfo(data);

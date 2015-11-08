@@ -1,17 +1,29 @@
 {
   "name": "sg-util",
   "version": "0.0.1",
-  "description": "AWS SecurityGroup Util commands",
+  "description": "AWS SecurityGroup Util CLI",
   "author": "toshihirock",
   "engines": {
     "node": ">=0.10"
   },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:toshihirock/sg-util.git"
+  }
   "dependencies": {
     "async": "^1.5.0",
     "aws-sdk": "^2.2.14",
     "commander": "^2.9.0"
   },
+  "keywords": [
+    "aws",
+    "cli",
+    "security",
+    "group",
+    "util",
+  ],
+  "preferGlobal": "true",
   "bin": {
-    "sg-util": "sg-util.js"
+    "sg-util": "index.js"
   }
 }
