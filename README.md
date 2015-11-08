@@ -6,14 +6,16 @@ This is CLI tool that provides AWS SecurityGroup information
 + Show SecurityGroup inbound or outbound rule like ManagementConsole
 + Show specify SecurityGroup associated EC2 or ELB or RDS
 
-# setup
+# Setup
 
 CLI uses AWS SDK
 
 You need to set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY
 
-+ Environment variables
-+ set `.aws/credentials` file
+This CLI looks for credentials in the following order
+
+1. Environment variables
+1. The AWS credentials file 
 
 ## Environment variables
 
@@ -28,7 +30,9 @@ export AWS_ACCESS_KEY_ID=xxxxxxxx
 export AWS_SECRET_ACCESS_KEY=xxxxxxx
 ```
 
-## Set `.aws/credentials` file
+## The AWS credentials file 
+
+The AWS credentials file located at `~/.aws/credentials`
 
 If you have already installed [AWS Command Line Interface](https://docs.aws.amazon.com/ja_jp/cli/latest/userguide/cli-chap-welcome.html), you can use `aws configure` command to set `~/.aws/credentials` file.
 
