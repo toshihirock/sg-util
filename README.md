@@ -36,7 +36,6 @@ $sg-util associate --name MySQL --region ap-northeast-1
 "rds","db","mysql.cfunxik4b0cn.ap-northeast-1.rds.amazonaws.com"
 ```
 
-```
 # Setup
 
 CLI uses AWS SDK
