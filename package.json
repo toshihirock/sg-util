@@ -1,7 +1,7 @@
 {
   "name": "sg-util",
   "version": "0.0.1",
-  "description": "AWS SecurityGroup Util CLI",
+  "description": "This is CLI tool that provides csv fromat AWS SecurityGroup information",
   "author": "toshihirock",
   "engines": {
     "node": ">=0.10"
@@ -20,7 +20,8 @@
     "cli",
     "security",
     "group",
-    "util"
+    "util",
+    "csv"
   ],
   "preferGlobal": "true",
   "bin": {
