@@ -15,7 +15,7 @@ $sg-util show --name Web --region ap-northeast-1
 "Web","sg-1f5ec07a","web","vpc-c406dea1"
 
 # show security group inbound rule
-$sg-util show --name Web --region ap-northeast-1 --inbound
+$sg-util show --id sg-1f5ec07a --region ap-northeast-1 --inbound
 "Index","IpProtocol","PortRange","Source"
 "0","tcp","80","0.0.0.0/0"
 "1","tcp","22","0.0.0.0/0"
@@ -71,4 +71,42 @@ $cat ~/.aws/credentials
 [default]
 aws_access_key_id = xxxxxxxxxx
 aws_secret_access_key = xxxxxxxxx
+```
+
+# Usage
+
+## show
+
+```bash
+$sg-util show --help
+
+  Usage: show [options]
+
+  show  security group information
+
+  Options:
+
+    -h, --help             output usage information
+    -r, --region <region>  AWS region
+    -i, --id <id>          security group id
+    -n, --name <name>      security group name
+    --inbound              show inbound rule
+    --outbound             show inbound rule
+```
+
+## associate
+
+```bash
+$sg-util associate --help
+
+  Usage: associate [options]
+
+  show  associate security group
+
+  Options:
+
+    -h, --help             output usage information
+    -r, --region <region>  AWS region
+    -i, --id <id>          security group id
+    -n, --name <name>      security group name
 ```
